@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Workdone Data Entry</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+    button { margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    #message { margin-top: 20px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f2f2f2; text-align: left; }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 2s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .hidden { display: none; }
+    select {
+      appearance: auto;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    select:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    }
+    .custom-option {
+      display: none;
+    }
+    .custom-option.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Workdone Data Entry Form</h2>
+  <form id="dataForm" target="hiddenFrame">
+    <label>HET Coordinator Name:
+      <input type="text" id="coordinatorName" name="HET Coordinator Name" required>
+    </label>
+    
+    <label>Select College:
+      <select id="college" name="Select College" required>
+        <option value="">-- Select a College --</option>
+        <option value="Anna University">Anna University</option>
+        <option value="Madras University">Madras University</option>
+        <option value="SRM University">SRM University</option>
+        <option value="VIT University">VIT University</option>
+        <option value="PSG College of Technology">PSG College of Technology</option>
+        <option value="Loyola College">Loyola College</option>
+        <option value="Stella Maris College">Stella Maris College</option>
+        <option value="MOP Vaishnav College">MOP Vaishnav College</option>
+        <option value="Women's Christian College">Women's Christian College</option>
+        <option value="Ethiraj College for Women">Ethiraj College for Women</option>
+        <option value="custom">Other (Please Specify)</option>
+      </select>
+      <input type="text" id="customCollege" class="custom-option" placeholder="Enter college name" 
+             oninput="updateCustomValue('college', 'customCollege')">
+    </label>
+    
+    <label>TOPIC:
+      <select id="topic" name="TOPIC" required>
+        <option value="">-- Select a Topic --</option>
+        <option value="Mental Health Awareness">Mental Health Awareness</option>
+        <option value="Drug Abuse Prevention">Drug Abuse Prevention</option>
+        <option value="HIV/AIDS Awareness">HIV/AIDS Awareness</option>
+        <option value="Sex Education">Sex Education</option>
+        <option value="Healthy Relationships">Healthy Relationships</option>
+        <option value="Career Guidance">Career Guidance</option>
+        <option value="Stress Management">Stress Management</option>
+        <option value="Life Skills">Life Skills</option>
+        <option value="Leadership Skills">Leadership Skills</option>
+        <option value="Peer Support Training">Peer Support Training</option>
+        <option value="custom">Other (Please Specify)</option>
+      </select>
+      <input type="text" id="customTopic" class="custom-option" placeholder="Enter topic" 
+             oninput="updateCustomValue('topic', 'customTopic')">
+    </label>
+    
+    <label>DATE:
+      <input type="date" id="date" name="DATE" required>
+    </label>
+    <label>TIME:
+      <input type="time" id="time" name="TIME" required>
+    </label>
+    <label>#Students:
+      <input type="number" id="students" name="#Students" required>
+    </label>
+    <label># Lecturers / Staff:
+      <input type="number" id="staff" name="# Lecturers / Staff" required>
+    </label>
+    <button type="button" id="submitBtn" onclick="submitForm()">Submit</button>
+  </form>
+  <div id="message"></div>
+  <h3>Submitted Entries</h3>
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>HET Coordinator Name</th>
+        <th>Select College</th>
+        <th>TOPIC</th>
+        <th>DATE</th>
+        <th>TIME</th>
+        <th>#Students</th>
+        <th># Lecturers / Staff</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  
+  <!-- Hidden iframe to handle form submission without page reload -->
+  <iframe name="hiddenFrame" class="hidden"></iframe>
+  
+  <script>
+    // Final Google Apps Script Web App URL
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyspLRSnHPTXRhOUxpRMJmCWRwOKyM8G51Gieh_wkbkudt1OFCXWFJRj432D22ODOPF/exec";
+    
+    // Set form action
+    document.getElementById("dataForm").action = WEB_APP_URL;
+    document.getElementById("dataForm").method = "POST";
+    
+    // Show/hide custom input fields based on dropdown selection
+    document.getElementById("college").addEventListener("change", function() {
+      const customField = document.getElementById("customCollege");
+      if (this.value === "custom") {
+        customField.classList.add("visible");
+        customField.required = true;
+      } else {
+        customField.classList.remove("visible");
+        customField.required = false;
+        customField.value = "";
+      }
+    });
+    
+    document.getElementById("topic").addEventListener("change", function() {
+      const customField = document.getElementById("customTopic");
+      if (this.value === "custom") {
+        customField.classList.add("visible");
+        customField.required = true;
+      } else {
+        customField.classList.remove("visible");
+        customField.required = false;
+        customField.value = "";
+      }
+    });
+    
+    // Update the dropdown value with custom input
+    function updateCustomValue(selectId, customInputId) {
+      const selectElement = document.getElementById(selectId);
+      const customValue = document.getElementById(customInputId).value;
+      
+      if (selectElement.value === "custom" && customValue) {
+        // This will be the value that gets submitted
+        selectElement.setAttribute("data-custom-value", customValue);
+      }
+    }
+    
+    // Submit the form directly to Google Apps Script
+    function submitForm() {
+      // Validate form
+      const form = document.getElementById("dataForm");
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      
+      // Check custom values
+      const collegeSelect = document.getElementById("college");
+      const topicSelect = document.getElementById("topic");
+      
+      if (collegeSelect.value === "custom") {
+        const customCollege = document.getElementById("customCollege").value;
+        if (!customCollege) {
+          alert("Please enter the college name");
+          return;
+        }
+        // Create a hidden input for the custom college
+        const hiddenCollege = document.createElement("input");
+        hiddenCollege.type = "hidden";
+        hiddenCollege.name = "Select College";
+        hiddenCollege.value = customCollege;
+        form.appendChild(hiddenCollege);
+        // Temporarily store the original value to restore later
+        collegeSelect.setAttribute("data-original", collegeSelect.name);
+        collegeSelect.name = "_ignored_" + collegeSelect.name;
+      }
+      
+      if (topicSelect.value === "custom") {
+        const customTopic = document.getElementById("customTopic").value;
+        if (!customTopic) {
+          alert("Please enter the topic");
+          return;
+        }
+        // Create a hidden input for the custom topic
+        const hiddenTopic = document.createElement("input");
+        hiddenTopic.type = "hidden";
+        hiddenTopic.name = "TOPIC";
+        hiddenTopic.value = customTopic;
+        form.appendChild(hiddenTopic);
+        // Temporarily store the original value to restore later
+        topicSelect.setAttribute("data-original", topicSelect.name);
+        topicSelect.name = "_ignored_" + topicSelect.name;
+      }
+      
+      // Disable button
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      
+      // Show loading message
+      document.getElementById("message").innerHTML = '<div class="loader"></div> Submitting data...';
+      
+      // Get form data for table display (including custom values if applicable)
+      const data = {
+        "HET Coordinator Name": document.getElementById("coordinatorName").value,
+        "Select College": collegeSelect.value === "custom" ? document.getElementById("customCollege").value : collegeSelect.value,
+        "TOPIC": topicSelect.value === "custom" ? document.getElementById("customTopic").value : topicSelect.value,
+        "DATE": document.getElementById("date").value,
+        "TIME": document.getElementById("time").value,
+        "#Students": document.getElementById("students").value,
+        "# Lecturers / Staff": document.getElementById("staff").value
+      };
+      
+      // Add row to table
+      addRowToTable(data, "Pending...");
+      
+      // Submit the form
+      try {
+        // Submit the form to hidden iframe
+        form.submit();
+        
+        // Update message and table after a delay (assuming success)
+        setTimeout(() => {
+          document.getElementById("message").innerHTML = "✅ Form submitted!";
+          
+          // Update the status in table
+          updateLastRowStatus("Submitted");
+          
+          // Reset form 
+          form.reset();
+          
+          // Hide custom fields
+          document.getElementById("customCollege").classList.remove("visible");
+          document.getElementById("customTopic").classList.remove("visible");
+          
+          // Remove temporary hidden inputs
+          const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+          hiddenInputs.forEach(input => form.removeChild(input));
+          
+          // Restore original select names if they were changed
+          if (collegeSelect.hasAttribute("data-original")) {
+            collegeSelect.name = collegeSelect.getAttribute("data-original");
+            collegeSelect.removeAttribute("data-original");
+          }
+          
+          if (topicSelect.hasAttribute("data-original")) {
+            topicSelect.name = topicSelect.getAttribute("data-original");
+            topicSelect.removeAttribute("data-original");
+          }
+          
+          // Re-enable button
+          submitBtn.disabled = false;
+        }, 2000);
+      } catch (error) {
+        // Show error message
+        document.getElementById("message").innerHTML = "❌ Error submitting: " + error.message;
+        
+        // Update the status in table
+        updateLastRowStatus("Failed");
+        
+        // Re-enable button
+        submitBtn.disabled = false;
+        
+        // Restore original form state
+        if (collegeSelect.hasAttribute("data-original")) {
+          collegeSelect.name = collegeSelect.getAttribute("data-original");
+          collegeSelect.removeAttribute("data-original");
+        }
+        
+        if (topicSelect.hasAttribute("data-original")) {
+          topicSelect.name = topicSelect.getAttribute("data-original");
+          topicSelect.removeAttribute("data-original");
+        }
+        
+        // Remove temporary hidden inputs
+        const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+        hiddenInputs.forEach(input => form.removeChild(input));
+      }
+    }
+    
+    function addRowToTable(data, status) {
+      const tableBody = document.getElementById("tableBody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${data["HET Coordinator Name"]}</td>
+        <td>${data["Select College"]}</td>
+        <td>${data["TOPIC"]}</td>
+        <td>${data["DATE"]}</td>
+        <td>${data["TIME"]}</td>
+        <td>${data["#Students"]}</td>
+        <td>${data["# Lecturers / Staff"]}</td>
+        <td class="status">${status}</td>
+      `;
+      tableBody.appendChild(row);
+    }
+    
+    function updateLastRowStatus(status) {
+      const tableRows = document.getElementById("tableBody").getElementsByTagName("tr");
+      if (tableRows.length > 0) {
+        const lastRow = tableRows[tableRows.length - 1];
+        const statusCell = lastRow.querySelector(".status");
+        if (statusCell) {
+          statusCell.textContent = status;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
